@@ -29,9 +29,14 @@ jobs:
     - name: Install dependencies
       run: npm ci
     
+    - name: Create directories
+      run: |
+        mkdir -p coverage/accessibility
+        mkdir -p reports/accessibility
+    
     - name: Run accessibility tests
       run: |
-        npm run test:accessibility
+        npm run test:accessibility -- --json --outputFile=reports/accessibility/test-results.json
         npm run lint:accessibility
     
     - name: Upload test results
