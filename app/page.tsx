@@ -238,6 +238,7 @@ export default function ChatPage() {
 
   const handleSelectSession = (sessionId: string) => {
     setCurrentSessionId(sessionId);
+    setSelectedSession(sessionId);
     fetchMessages();
   };
 
