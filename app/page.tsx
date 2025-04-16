@@ -247,7 +247,6 @@ export default function ChatPage() {
     setIsLoadingMessages(true);
     try {
       const response = await fetch(`/api/messages?sessionId=${sessionId}`);
-      const response = await fetch(`/api/messages?sessionId=${selectedSession}`);
       if (!response.ok) throw new Error('Failed to fetch messages');
       const data = await response.json();
       setMessages(data.messages || []);
