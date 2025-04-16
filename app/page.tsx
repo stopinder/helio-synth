@@ -22,7 +22,7 @@ import { ThinkingAnimation } from './components/ThinkingAnimation';
 import OpenAI from 'openai';
 import { Sidebar } from './components/Sidebar';
 import { RightSidebar } from './components/RightSidebar';
-import { supabase } from '@/lib/supabase';
+import supabase from '@/lib/supabase';
 
 type Message = {
   id: string;
@@ -252,6 +252,22 @@ export default function ChatPage() {
     }
   };
 
+  const fetchSessions = async () => {
+    try {
+      setIsLoadingSessions(true);
+      const response = await fetch('/api/sessions');
+      if (!response.ok) {
+        throw new Error('Failed to fetch sessions');
+      }
+      const data = await response.json();
+      setSessions(data.sessions || []);
+    } catch (error) {
+      console.error('Error fetching sessions:', error);
+    } finally {
+      setIsLoadingSessions(false);
+    }
+  };
+
   const handleSelectSession: (sessionId: string) => Promise<void> = async (sessionId: string) => {
     setCurrentSessionId(sessionId);
     await fetchMessages(sessionId);
@@ -324,21 +340,6 @@ export default function ChatPage() {
 
   // Fetch sessions on mount
   useEffect(() => {
-    const fetchSessions = async () => {
-      try {
-        setIsLoadingSessions(true);
-        const response = await fetch('/api/sessions');
-        if (!response.ok) {
-          throw new Error('Failed to fetch sessions');
-        }
-        const data = await response.json();
-        setSessions(data.sessions || []);
-      } catch (error) {
-        console.error('Error fetching sessions:', error);
-      } finally {
-        setIsLoadingSessions(false);
-      }
-    };
     fetchSessions();
   }, []);
 
@@ -652,70 +653,29 @@ export default function ChatPage() {
                               </span>
                               {message.archetype && (
                                 <Badge
-                                  key={`${message.id}-badge`}
-                                  variant="outline"
+                                  key={`${message.role}-${message.archetype}`}
                                   className={cn(
-                                    "ml-2",
-                                    message.archetype === 'Self' && "bg-yellow-900/50 text-yellow-300 border-yellow-500",
-                                    message.archetype === 'protector' && "bg-purple-900/50 text-purple-300 border-purple-500",
-                                    message.archetype === 'exile' && "bg-blue-900/50 text-blue-300 border-blue-500",
-                                    message.archetype === 'firefighter' && "bg-red-900/50 text-red-300 border-red-500"
+                                    "text-xs",
+                                    message.role === 'Client' && "bg-gray-800",
+                                    message.role === 'Helio' && "bg-blue-900/50",
+                                    message.role === 'Therapist' && "bg-purple-900/50",
+                                    message.archetype === 'Self' && "bg-yellow-900/50",
+                                    message.archetype === 'protector' && "bg-purple-900/50",
+                                    message.archetype === 'exile' && "bg-blue-900/50",
+                                    message.archetype === 'firefighter' && "bg-red-900/50"
                                   )}
                                 >
                                   {message.archetype}
                                 </Badge>
                               )}
                             </div>
-                            <TypingMessage
-                              key={`${message.id}-typing`}
-                              message={message.content}
-                              role={message.role}
-                              archetype={message.archetype}
-                            />
                           </div>
                         ))}
-                        {isThinking && (
-                          <div className="flex flex-col space-y-2 p-4 rounded-lg bg-gray-800">
-                            <div className="flex items-center space-x-2">
-                              <span className="font-semibold text-gray-300">Helio</span>
-                            </div>
-                            <ThinkingAnimation isThinking={true} />
-                          </div>
-                        )}
-                        <div ref={messagesContainerRef} style={{ height: '1px' }} />
                       </div>
                     </ScrollArea>
                   </Card>
                 </div>
-
-                <div className="flex-none">
-                  <form onSubmit={handleSubmit} className="flex gap-2">
-                    <Input
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      placeholder="Type your message..."
-                      className="flex-1 bg-gray-800/50 border-gray-700 text-white placeholder-gray-400 backdrop-blur-sm"
-                    />
-                    <button
-                      type="submit"
-                      disabled={isLoading}
-                      className="px-4 py-2 bg-gray-800/50 text-gray-200 rounded-lg border border-gray-700 hover:bg-gray-700/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isLoading ? (
-                        <div className="flex items-center space-x-2">
-                          <div className="w-4 h-4 border-2 border-gray-200 border-t-transparent rounded-full animate-spin" />
-                          <span>Sending...</span>
-                        </div>
-                      ) : (
-                        'Send'
-                      )}
-                    </button>
-                  </form>
-                </div>
               </div>
-
-              {/* Right Sidebar */}
-              <RightSidebar sessionId={currentSessionId} />
             </div>
           </div>
         </div>
@@ -723,207 +683,3 @@ export default function ChatPage() {
     </div>
   );
 }
-
-function transformToClinicalResponse(content: string): string {
-  const transformations: Transformation[] = [
-    // Core IFS and Clinical Language
-    {
-      pattern: /In the shadowed tavern of your being/g,
-      replacement: "I notice a part of you that"
-    },
-    {
-      pattern: /where lanterns flicker with the secrets of the night/g,
-      replacement: "holds significant emotional weight"
-    },
-    {
-      pattern: /there whispers a tale of a river that flows too swiftly/g,
-      replacement: "is experiencing intense emotions"
-    },
-    {
-      pattern: /Its waters, once clear and nurturing/g,
-      replacement: "This part, which previously felt manageable"
-    },
-    {
-      pattern: /now surge with a fervor that threatens to overflow its banks/g,
-      replacement: "now feels overwhelming and difficult to contain"
-    },
-    {
-      pattern: /This river, seeking solace in the embrace of the ocean/g,
-      replacement: "This part is seeking relief"
-    },
-    {
-      pattern: /carries with it the essence of something deeply cherished/g,
-      replacement: "holds important protective functions"
-    },
-    {
-      pattern: /perhaps a longing or a pain too tender to touch/g,
-      replacement: "possibly protecting vulnerable emotions or experiences"
-    },
-    {
-      pattern: /What sacred springs feed this river\?/g,
-      replacement: "What experiences or beliefs might be fueling this part's intensity?"
-    },
-    {
-      pattern: /And in its depths, what precious stones lie unturned/g,
-      replacement: "What protective functions might this part be serving?"
-    },
-    {
-      pattern: /glimmering with the potential for discovery/g,
-      replacement: "that we could explore together"
-    },
-    {
-      pattern: /The land that cradles this river, your soul's landscape/g,
-      replacement: "Your internal system"
-    },
-    {
-      pattern: /yearns for harmony/g,
-      replacement: "is seeking balance"
-    },
-    {
-      pattern: /for a gentle rain that soothes and replenishes/g,
-      replacement: "for a way to process these experiences"
-    },
-    {
-      pattern: /not to erode, but to nurture growth/g,
-      replacement: "in a way that promotes healing and integration"
-    },
-
-    // Archetype-Specific Transformations
-    {
-      pattern: /an exile stirs/g,
-      replacement: "a vulnerable part emerges"
-    },
-    {
-      pattern: /the protector stands guard/g,
-      replacement: "a protective part is activated"
-    },
-    {
-      pattern: /the firefighter rushes in/g,
-      replacement: "a reactive part is responding"
-    },
-    {
-      pattern: /Self energy flows/g,
-      replacement: "your core Self is present"
-    },
-
-    // Mythic and Poetic to Clinical
-    {
-      pattern: /the stars seem to whisper/g,
-      replacement: "I notice a part that"
-    },
-    {
-      pattern: /the cosmic dance/g,
-      replacement: "the internal dynamics"
-    },
-    {
-      pattern: /the dawn of understanding/g,
-      replacement: "the process of awareness"
-    },
-    {
-      pattern: /lunar insight/g,
-      replacement: "reflective awareness"
-    },
-    {
-      pattern: /celestial whisper/g,
-      replacement: "internal wisdom"
-    },
-    {
-      pattern: /the earth's wisdom/g,
-      replacement: "embodied knowledge"
-    },
-    {
-      pattern: /the ancient wisdom/g,
-      replacement: "core beliefs"
-    },
-    {
-      pattern: /the mystic knowledge/g,
-      replacement: "internal resources"
-    },
-    {
-      pattern: /the crystal ball reveals/g,
-      replacement: "the exploration shows"
-    },
-    {
-      pattern: /the legendary insight/g,
-      replacement: "the therapeutic insight"
-    },
-    {
-      pattern: /from the halls of wisdom/g,
-      replacement: "from your internal system"
-    },
-    {
-      pattern: /the ancient texts speak/g,
-      replacement: "your experiences indicate"
-    },
-    {
-      pattern: /a mythical understanding/g,
-      replacement: "a therapeutic understanding"
-    },
-    {
-      pattern: /the ethereal wisdom/g,
-      replacement: "the internal wisdom"
-    },
-
-    // Journey Phase Transformations
-    {
-      pattern: /the exploration phase/g,
-      replacement: "this initial stage of awareness"
-    },
-    {
-      pattern: /the awareness phase/g,
-      replacement: "this deepening of understanding"
-    },
-    {
-      pattern: /the integration phase/g,
-      replacement: "this process of incorporating new insights"
-    },
-    {
-      pattern: /the transformation phase/g,
-      replacement: "this period of meaningful change"
-    }
-  ];
-
-  let transformedContent = content;
-  transformations.forEach(({ pattern, replacement }) => {
-    transformedContent = transformedContent.replace(pattern, replacement);
-  });
-
-  // Add clinical framing if needed
-  if (!transformedContent.includes("I notice") && !transformedContent.includes("What")) {
-    transformedContent = "I notice " + transformedContent;
-  }
-
-  // Count existing questions
-  const questionCount = (transformedContent.match(/\?/g) || []).length;
-  
-  // Add Socratic questions if needed
-  if (questionCount < 2) {
-    const additionalQuestions = [
-      "What do you notice about that?",
-      "How does that feel in your body?",
-      "What might this part be trying to tell you?",
-      "What would it be like to get curious about this?",
-      "What do you imagine might happen if you were to explore this further?",
-      "How might this relate to other parts of your experience?",
-      "What do you notice about the sensations that come up when you think about this?",
-      "What might this part need from you right now?",
-      "How does this part want to be seen or understood?",
-      "What would help this part feel safer?",
-      "What resources might support this part?",
-      "How might your Self energy respond to this?",
-      "What would it be like to witness this part with compassion?",
-      "What might this part be protecting?",
-      "How does this part relate to your core values?"
-    ];
-
-    // Add questions until we have at least 2
-    let currentCount = questionCount;
-    while (currentCount < 2) {
-      const randomQuestion = additionalQuestions[Math.floor(Math.random() * additionalQuestions.length)];
-      transformedContent += " " + randomQuestion;
-      currentCount++;
-    }
-  }
-
-  return transformedContent;
-} 

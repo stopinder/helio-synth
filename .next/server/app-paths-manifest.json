@@ -1,1 +1,13 @@
-{}
+{
+  "/api/chat/route": "app/api/chat/route.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/test-supabase-direct/route": "app/api/test-supabase-direct/route.js",
+  "/api/messages/route": "app/api/messages/route.js",
+  "/api/test-supabase-tables/route": "app/api/test-supabase-tables/route.js",
+  "/api/sessions/route": "app/api/sessions/route.js",
+  "/api/test-supabase/route": "app/api/test-supabase/route.js",
+  "/api/test/route": "app/api/test/route.js",
+  "/test-supabase/page": "app/test-supabase/page.js",
+  "/page": "app/page.js",
+  "/test/page": "app/test/page.js"
+}
