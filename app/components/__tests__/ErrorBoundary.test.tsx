@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import { axe, toHaveNoViolations } from 'jest-axe';
 import { ErrorBoundary } from '../ErrorBoundary';
 
 // Mock toast
@@ -8,6 +9,8 @@ jest.mock('react-hot-toast', () => ({
     error: jest.fn(),
   },
 }));
+
+expect.extend(toHaveNoViolations);
 
 describe('ErrorBoundary', () => {
   const ThrowError = () => {
@@ -70,5 +73,31 @@ describe('ErrorBoundary', () => {
 
     expect(screen.getByText('Custom error message')).toBeInTheDocument();
     expect(screen.queryByText('Something went wrong')).not.toBeInTheDocument();
+  });
+
+  it('should have no accessibility violations', async () => {
+    const { container } = render(
+      <ErrorBoundary>
+        <div>Test content</div>
+      </ErrorBoundary>
+    );
+
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+
+  it('should handle errors gracefully', async () => {
+    const ErrorComponent = () => {
+      throw new Error('Test error');
+    };
+
+    const { container } = render(
+      <ErrorBoundary>
+        <ErrorComponent />
+      </ErrorBoundary>
+    );
+
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
   });
 }); 
