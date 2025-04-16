@@ -236,12 +236,6 @@ export default function ChatPage() {
   const [isThinking, setIsThinking] = useState<boolean>(false);
   const [lastMessage, setLastMessage] = useState<Message | null>(null);
 
-  const handleSelectSession = async (sessionId: string) => {
-    setSelectedSession(sessionId);
-    setCurrentSessionId(sessionId);
-    await fetchMessages(sessionId);
-  };
-
   const fetchMessages = async (sessionId: string) => {
     if (!sessionId) return;
     setIsLoadingMessages(true);
@@ -256,6 +250,12 @@ export default function ChatPage() {
     } finally {
       setIsLoadingMessages(false);
     }
+  };
+
+  const handleSelectSession = async (sessionId: string) => {
+    setSelectedSession(sessionId);
+    setCurrentSessionId(sessionId);
+    await fetchMessages(sessionId);
   };
 
   // Auto-scroll to bottom when messages change

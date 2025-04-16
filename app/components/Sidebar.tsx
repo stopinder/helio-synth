@@ -147,7 +147,7 @@ export function Sidebar({ onNewSession, onSelectSession, currentSessionId }: Sid
             <SessionAccordion
               sessions={filteredSessions}
               onSelectSession={onSelectSession}
-              activeSessionId={currentSessionId}
+              currentSessionId={currentSessionId}
               onRenameSession={handleRenameSession}
             />
           </div>
