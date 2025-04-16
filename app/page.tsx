@@ -22,6 +22,7 @@ import { ThinkingAnimation } from './components/ThinkingAnimation';
 import OpenAI from 'openai';
 import { Sidebar } from './components/Sidebar';
 import { RightSidebar } from './components/RightSidebar';
+import { supabase } from '@/lib/supabase';
 
 type Message = {
   id: string;
@@ -251,7 +252,7 @@ export default function ChatPage() {
     }
   };
 
-  const handleSelectSession = async (sessionId: string) => {
+  const handleSelectSession: (sessionId: string) => Promise<void> = async (sessionId: string) => {
     setCurrentSessionId(sessionId);
     await fetchMessages(sessionId);
   };
@@ -516,30 +517,14 @@ export default function ChatPage() {
 
   // Add handleNewSession function
   const handleNewSession = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch('/api/sessions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: `Session ${new Date().toLocaleString()}`,
-        }),
-      });
+    const { data: session } = await supabase.from("sessions").insert({
+      title: "New Session",
+      mode: "chat",
+    }).select().single();
 
-      if (!response.ok) {
-        throw new Error('Failed to create new session');
-      }
-
-      const newSession = await response.json();
-      setCurrentSessionId(newSession.id);
-      setMessages([]);
-      setSessions(prev => [...prev, newSession]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setIsLoading(false);
+    if (session) {
+      await fetchSessions();
+      setCurrentSessionId(session.id);
     }
   };
 
