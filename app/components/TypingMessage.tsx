@@ -1,35 +1,61 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
+type MessageRole = 'Client' | 'Helio' | 'Therapist';
+type Archetype = 'Self' | 'protector' | 'exile' | 'firefighter';
+
 interface TypingMessageProps {
-  content: string;
-  className?: string;
+  message: string;
   onComplete?: () => void;
+  typingSpeed?: number;
+  role?: MessageRole;
+  archetype?: Archetype;
 }
 
-export function TypingMessage({ content, className, onComplete }: TypingMessageProps) {
+export function TypingMessage({ 
+  message, 
+  onComplete,
+  typingSpeed = 10,
+  role,
+  archetype
+}: TypingMessageProps) {
   const [displayedText, setDisplayedText] = useState('');
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isTyping, setIsTyping] = useState(true);
+  const messageRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (currentIndex < content.length) {
-      const timeout = setTimeout(() => {
-        setDisplayedText(prev => prev + content[currentIndex]);
-        setCurrentIndex(prev => prev + 1);
-      }, 10); // Changed from 20ms to 10ms for faster typing
+    let currentIndex = 0;
+    const interval = setInterval(() => {
+      if (currentIndex < message.length) {
+        setDisplayedText(message.substring(0, currentIndex + 1));
+        currentIndex++;
+      } else {
+        clearInterval(interval);
+        setIsTyping(false);
+        if (onComplete) {
+          onComplete();
+        }
+      }
+    }, typingSpeed);
 
-      return () => clearTimeout(timeout);
-    } else if (onComplete) {
-      onComplete();
-    }
-  }, [currentIndex, content, onComplete]);
+    return () => clearInterval(interval);
+  }, [message, onComplete, typingSpeed]);
 
   return (
-    <p className={cn('text-gray-200 whitespace-pre-wrap', className)}>
-      {displayedText}
-      {currentIndex < content.length && (
-        <span className="inline-block w-2 h-4 ml-1 bg-gray-400 animate-pulse" />
+    <div 
+      ref={messageRef}
+      className={cn(
+        "text-gray-200 whitespace-pre-wrap",
+        role === 'Helio' && "text-blue-300",
+        role === 'Therapist' && "text-purple-300",
+        archetype === 'Self' && "text-yellow-300",
+        archetype === 'protector' && "text-purple-300",
+        archetype === 'exile' && "text-blue-300",
+        archetype === 'firefighter' && "text-red-300"
       )}
-    </p>
+    >
+      {displayedText}
+      {isTyping && <span className="animate-pulse">▋</span>}
+    </div>
   );
 } 

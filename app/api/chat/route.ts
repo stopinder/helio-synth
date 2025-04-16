@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import supabase from '../../../lib/supabase';
-import { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
-import { systemPrompts } from '../../lib/prompts';
+import { systemPrompts } from '@/app/prompts';
+import { voicePrompts } from '@/app/voicePrompts';
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -14,114 +14,48 @@ function isValidMode(mode: string): mode is keyof typeof systemPrompts {
   return mode in systemPrompts;
 }
 
-// Add archetype inference function
-function inferArchetype(message: string, mode: string, previousMessages: any[] = []): 'Self' | 'protector' | 'exile' | 'firefighter' {
-  const lowerMessage = message.toLowerCase();
-  
-  // Self indicators - core identity and wisdom
-  const selfPatterns = [
-    'self', 'core', 'center', 'essence', 'wisdom', 'truth', 'light',
-    'awareness', 'consciousness', 'presence', 'being', 'whole', 'complete',
-    'balance', 'harmony', 'peace', 'calm', 'still', 'quiet', 'unity',
-    'integration', 'wholeness', 'authentic', 'genuine', 'real', 'true',
-    'connected', 'grounded', 'centered', 'balanced', 'integrated'
-  ];
-  
-  // Protector indicators - defense and guidance
-  const protectorPatterns = [
-    'protect', 'guard', 'shield', 'defend', 'guide', 'lead', 'help',
-    'support', 'strength', 'power', 'control', 'manage', 'organize',
-    'structure', 'order', 'boundary', 'limit', 'safe', 'secure', 'care',
-    'nurture', 'guide', 'direct', 'plan', 'strategize', 'prepare',
-    'anticipate', 'prevent', 'avoid', 'caution', 'warning'
-  ];
-  
-  // Exile indicators - vulnerability and healing
-  const exilePatterns = [
-    'hurt', 'pain', 'scared', 'afraid', 'wound', 'trauma', 'fear',
-    'sad', 'lonely', 'abandoned', 'rejected', 'shame', 'guilt',
-    'vulnerable', 'weak', 'broken', 'heal', 'healing', 'recover',
-    'lost', 'alone', 'isolated', 'separated', 'hidden', 'buried',
-    'forgotten', 'neglected', 'unloved', 'unworthy', 'unwanted'
-  ];
-  
-  // Firefighter indicators - action and defense
-  const firefighterPatterns = [
-    'fight', 'anger', 'rage', 'attack', 'defend', 'protect', 'guard',
-    'action', 'move', 'quick', 'fast', 'urgent', 'emergency', 'crisis',
-    'threat', 'danger', 'risk', 'challenge', 'conflict', 'battle',
-    'resist', 'oppose', 'confront', 'challenge', 'overcome', 'survive',
-    'escape', 'run', 'hide', 'avoid', 'distract'
-  ];
+type Archetype = 'Self' | 'protector' | 'exile' | 'firefighter';
 
-  // Count matches for each archetype using regex for more accurate matching
-  const matches = {
-    Self: selfPatterns.reduce((count, pattern) => 
-      count + (new RegExp(`\\b${pattern}\\b`, 'i').test(lowerMessage) ? 1 : 0), 0),
-    protector: protectorPatterns.reduce((count, pattern) => 
-      count + (new RegExp(`\\b${pattern}\\b`, 'i').test(lowerMessage) ? 1 : 0), 0),
-    exile: exilePatterns.reduce((count, pattern) => 
-      count + (new RegExp(`\\b${pattern}\\b`, 'i').test(lowerMessage) ? 1 : 0), 0),
-    firefighter: firefighterPatterns.reduce((count, pattern) => 
-      count + (new RegExp(`\\b${pattern}\\b`, 'i').test(lowerMessage) ? 1 : 0), 0)
+type Message = {
+  id: string;
+  role: 'Client' | 'Helio' | 'Therapist';
+  content: string;
+  created_at: string;
+  archetype?: Archetype;
+  session_id: string;
+};
+
+type ChatCompletionMessageParam = {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+  name: string;
+};
+
+type ArchetypeCounts = {
+  Self: number;
+  protector: number;
+  exile: number;
+  firefighter: number;
+};
+
+// Add archetype inference function
+const inferArchetype = (content: string | null, mode: string, previousMessages: Message[]): Archetype | undefined => {
+  if (!content) return undefined;
+
+  const archetypePatterns: Record<Archetype, RegExp> = {
+    'Self': /self|core|center|essence/i,
+    'protector': /protector|guardian|defender|shield/i,
+    'exile': /exile|vulnerable|hurt|wounded/i,
+    'firefighter': /firefighter|emergency|react|action/i
   };
 
-  // Check for emotional intensity indicators
-  const emotionalIntensity = (lowerMessage.match(/!+/g) || []).length;
-  if (emotionalIntensity > 1) {
-    matches.firefighter += emotionalIntensity;
-  }
-
-  // Check for question patterns (often indicate Self or protector)
-  const questionCount = (lowerMessage.match(/\?/g) || []).length;
-  if (questionCount > 0) {
-    matches.Self += questionCount * 0.5;
-    matches.protector += questionCount * 0.3;
-  }
-
-  // Check for previous messages to consider context
-  if (previousMessages && previousMessages.length > 0) {
-    const lastMessage = previousMessages[previousMessages.length - 1];
-    if (lastMessage.role === 'Perdita' && lastMessage.archetype) {
-      // If the last message was from a specific archetype, increase its likelihood
-      matches[lastMessage.archetype as keyof typeof matches] += 1;
+  for (const [archetype, pattern] of Object.entries(archetypePatterns)) {
+    if (pattern.test(content)) {
+      return archetype as Archetype;
     }
   }
-
-  // Get the archetype with the most matches
-  const maxMatches = Math.max(...Object.values(matches));
-  if (maxMatches > 0) {
-    const archetype = Object.entries(matches).find(([_, count]) => count === maxMatches)?.[0];
-    if (archetype) return archetype as 'Self' | 'protector' | 'exile' | 'firefighter';
-  }
-
-  // Default based on mode and message characteristics
-  if (mode === 'heliosynthesis') {
-    // For heliosynthesis, prefer Self for philosophical/contemplative messages
-    if (lowerMessage.includes('?') || lowerMessage.length > 100) {
-      return 'Self';
-    }
-    return 'protector';
-  }
-  
-  if (mode === 'plain') {
-    // For plain mode, prefer protector for practical/action-oriented messages
-    if (lowerMessage.includes('how') || lowerMessage.includes('what')) {
-      return 'protector';
-    }
-    return 'Self';
-  }
-  
-  if (mode === 'mythic') {
-    // For mythic mode, prefer exile for emotional/experiential messages
-    if (lowerMessage.includes('feel') || lowerMessage.includes('experience')) {
-      return 'exile';
-    }
-    return 'Self';
-  }
-
-  return 'Self';
-}
+  return undefined;
+};
 
 // Define the prompt modes and their system messages
 const promptModes = {
@@ -219,22 +153,42 @@ const poeticPhrases = {
     Self: [
       '☀️ A solar clarity enters...',
       '🌌 This echoes through the constellation...',
-      '🌠 The cosmic dance unfolds...'
+      '🌠 The cosmic dance unfolds...',
+      '✨ A gentle presence emerges...',
+      '🌟 The stars whisper of sacred space...'
     ],
     protector: [
       '🛡️ The guardian stirs...',
       '🌟 A protective light emerges...',
-      '⚡ The shield of wisdom forms...'
+      '⚡ The shield of wisdom forms...',
+      '🌅 The dawn of protection rises...',
+      '🌙 The moon watches over...'
     ],
     exile: [
       '🌒 An exile stirs at the edge of awareness...',
       '🌙 A wounded part emerges from shadow...',
-      '🌑 The hidden wisdom surfaces...'
+      '🌑 The hidden wisdom surfaces...',
+      '✨ A gentle presence approaches...',
+      '🌟 The stars witness with care...'
     ],
     firefighter: [
       '🔥 The warrior spirit rises...',
       '⚔️ Battle-ready wisdom emerges...',
-      '💫 The fighter\'s clarity breaks through...'
+      '💫 The fighter\'s clarity breaks through...',
+      '🌪️ The storm of protection gathers...',
+      '⚡ The lightning of defense strikes...'
+    ],
+    trauma: [
+      '🌌 The cosmos holds this sacred space...',
+      '✨ Starlight witnesses with reverence...',
+      '🌙 The moon offers gentle reflection...',
+      '🌟 The stars honor this journey...',
+      '🌅 Dawn breaks over wounded lands...',
+      '🌊 The ocean\'s waves carry both storm and calm...',
+      '🔥 The phoenix rises from sacred ashes...',
+      '🌲 Ancient trees stand guard in the forest...',
+      '🏔️ Mountains rise through seasons of storm...',
+      '🌪️ The desert wind carries protective whispers...'
     ]
   },
   plain: {
@@ -250,35 +204,35 @@ const poeticPhrases = {
     ],
     exile: [
       '🌒 A vulnerable part speaks...',
-      '💔 The wounded wisdom emerges...',
-      '🌙 Shadowed insight surfaces...'
+      '🌱 Healing begins...',
+      '🕊️ Peace emerges...'
     ],
     firefighter: [
-      '🔥 The fighter responds...',
-      '⚔️ Battle wisdom emerges...',
-      '💫 The warrior speaks...'
+      '⚡ Action arises...',
+      '🛡️ Defense forms...',
+      '💪 Strength surfaces...'
     ]
   },
   mythic: {
     Self: [
-      '🐉 The ancient wisdom stirs...',
-      '🧙‍♂️ The mystic knowledge flows...',
-      '🔮 The crystal ball reveals...'
+      '🌌 The oracle speaks...',
+      '🌟 Ancient wisdom emerges...',
+      '🌠 The mythic journey continues...'
     ],
     protector: [
-      '⚔️ The legendary guardian emerges...',
-      '🏰 From the halls of protection...',
-      '🗡️ The shield of legend speaks...'
+      '🛡️ The guardian awakens...',
+      '⚔️ The warrior responds...',
+      '🦁 The protector roars...'
     ],
     exile: [
-      '🌒 The exiled wisdom stirs...',
-      '🧝‍♀️ The hidden oracle speaks...',
-      '🌑 The shadowed wisdom emerges...'
+      '🌙 The wounded one speaks...',
+      '🌑 The shadow emerges...',
+      '🌊 The depths reveal...'
     ],
     firefighter: [
-      '🔥 The warrior\'s spirit rises...',
-      '⚔️ Battle-ready wisdom emerges...',
-      '💫 The fighter\'s clarity breaks through...'
+      '🔥 The warrior rises...',
+      '⚡ The defender acts...',
+      '🌪️ The storm responds...'
     ]
   },
   clinical: {
@@ -305,24 +259,24 @@ const poeticPhrases = {
   },
   cbt: {
     Self: [
-      '📝 A cognitive pattern emerges...',
-      '🧠 The behavioral insight forms...',
-      '💡 A therapeutic observation surfaces...'
+      '🧠 A cognitive pattern emerges...',
+      '📊 The thought process reveals...',
+      '💡 A behavioral insight forms...'
     ],
     protector: [
       '🛡️ The cognitive defense activates...',
-      '🔒 A behavioral pattern emerges...',
-      '🔄 The coping strategy surfaces...'
+      '🔒 A thought pattern emerges...',
+      '🔄 The coping mechanism surfaces...'
     ],
     exile: [
-      '💔 A core belief surfaces...',
-      '🧩 The automatic thought emerges...',
-      '🌱 The cognitive shift begins...'
+      '💔 An emotional pattern emerges...',
+      '🧩 The core belief surfaces...',
+      '🌱 The restructuring begins...'
     ],
     firefighter: [
       '⚡ The behavioral response activates...',
-      '🛡️ The cognitive barrier forms...',
-      '🔄 The adaptive pattern emerges...'
+      '🛡️ The safety behavior forms...',
+      '🔄 The adaptive strategy engages...'
     ]
   }
 } as const;
@@ -334,59 +288,60 @@ async function analyzeConversationDynamics(
   sessionId: string | null
 ): Promise<{ shouldUpdateMode: boolean; newMode?: string }> {
   // Get recent messages for context
-  const { data: recentMessages } = await supabase
-    .from('messages')
-    .select('content, role, archetype')
-    .eq('session_id', sessionId)
-    .order('created_at', { ascending: false })
-    .limit(5);
-
-  if (!recentMessages) return { shouldUpdateMode: false };
-
-  // Count archetype occurrences in recent messages
-  const archetypeCounts = {
-    exile: 0,
-    protector: 0,
-    firefighter: 0,
-    Self: 0
-  };
-
-  recentMessages.forEach(msg => {
-    if (msg.archetype) {
-      archetypeCounts[msg.archetype as keyof typeof archetypeCounts]++;
-    }
-  });
-
-  // Analyze current message for intense emotional content
-  const intensePatterns = {
-    exile: /(hurt|pain|vulnerable|scared|afraid|alone|abandoned|rejected)/gi,
-    protector: /(protect|guard|shield|defend|support|care|safe|secure)/gi,
-    firefighter: /(fight|anger|rage|fury|defend|attack|threat|danger)/gi,
-    Self: /(wisdom|calm|peace|balance|center|core|truth|light)/gi
-  };
-
-  let dominantArchetype: string | null = null;
-  let maxCount = 0;
-
-  // Check for dominant archetype in recent messages
-  Object.entries(archetypeCounts).forEach(([archetype, count]) => {
-    if (count > maxCount) {
-      maxCount = count;
-      dominantArchetype = archetype;
-    }
-  });
-
-  // Check current message for intense patterns
+  const recentMessages = sessionId ? await getRecentMessages(sessionId, 5) : [];
+  const allMessages = [...recentMessages, { content: message }];
+  
+  // Define trauma-related keywords
+  const traumaKeywords = [
+    'abuse', 'trauma', 'survivor', 'violence', 'assault',
+    'neglect', 'hurt', 'pain', 'wound', 'wounded',
+    'damage', 'harm', 'violation', 'betrayal'
+  ];
+  
+  // Define childhood-specific keywords
+  const childhoodKeywords = [
+    'child', 'childhood', 'young', 'little', 'kid',
+    'parent', 'mother', 'father', 'family', 'home'
+  ];
+  
+  // Check for trauma-related content
+  const hasTraumaContent = traumaKeywords.some(keyword => 
+    message.toLowerCase().includes(keyword)
+  );
+  
+  const hasChildhoodContent = childhoodKeywords.some(keyword =>
+    message.toLowerCase().includes(keyword)
+  );
+  
+  // Calculate message intensity
   let currentMessageIntensity = 0;
-  Object.entries(intensePatterns).forEach(([archetype, pattern]) => {
-    const matches = message.match(pattern);
-    if (matches) {
-      currentMessageIntensity += matches.length;
+  if (hasTraumaContent) currentMessageIntensity += 2;
+  if (hasChildhoodContent) currentMessageIntensity += 1;
+  
+  // Count trauma mentions in recent messages
+  let maxCount = 0;
+  let currentCount = 0;
+  
+  for (const msg of allMessages) {
+    const hasTrauma = traumaKeywords.some(keyword => 
+      msg.content.toLowerCase().includes(keyword)
+    );
+    
+    if (hasTrauma) {
+      currentCount++;
+      maxCount = Math.max(maxCount, currentCount);
+    } else {
+      currentCount = 0;
     }
-  });
+  }
 
   // Determine if mode should be updated
-  if (currentMessageIntensity >= 3 || maxCount >= 3) {
+  if (currentMessageIntensity >= 2 || maxCount >= 2) {
+    // For trauma content, prefer clinical mode for deeper support
+    if (hasTraumaContent && mode !== 'clinical') {
+      return { shouldUpdateMode: true, newMode: 'clinical' };
+    }
+    
     // Map archetypes to modes
     const archetypeToMode: Record<string, string> = {
       exile: 'mythic',
@@ -395,6 +350,7 @@ async function analyzeConversationDynamics(
       Self: 'heliosynthesis'
     };
 
+    const dominantArchetype = getDominantArchetype(recentMessages);
     const newMode = archetypeToMode[dominantArchetype || 'Self'];
     
     // Only update if the mode would actually change
@@ -406,54 +362,76 @@ async function analyzeConversationDynamics(
   return { shouldUpdateMode: false };
 }
 
+// Define persona-specific prompts
+const personaPrompts = {
+  Gurdjieff: {
+    tone: "direct, challenging, metaphysical",
+    style: "Use Gurdjieff's characteristic directness and metaphysical language. Challenge assumptions and encourage self-observation. Include references to 'work on oneself', 'self-remembering', and 'the law of three'.",
+    example: "You are not one, but many. Observe yourself as you are, not as you imagine yourself to be."
+  },
+  Osho: {
+    tone: "poetic, flowing, paradoxical",
+    style: "Use Osho's characteristic poetic language and paradoxical statements. Include references to meditation, awareness, and the present moment. Use metaphors and stories to illustrate points.",
+    example: "Be like a river, flowing without resistance. In the river of life, there are no obstacles, only opportunities to flow around."
+  },
+  Rogers: {
+    tone: "empathic, person-centered, reflective",
+    style: "Use Carl Rogers' person-centered approach. Focus on active listening, unconditional positive regard, and empathic understanding. Reflect feelings and meanings back to the client.",
+    example: "I hear you saying that you feel lost in this moment. That must be quite challenging for you."
+  },
+  Clinical: {
+    tone: "professional, evidence-based, structured",
+    style: "Use clinical terminology and evidence-based approaches. Focus on assessment, intervention, and measurable outcomes. Maintain professional boundaries and therapeutic alliance.",
+    example: "Let's explore the cognitive patterns that emerge when you experience this situation."
+  },
+  Default: {
+    tone: "neutral, balanced, clear",
+    style: "Use clear, straightforward language. Maintain a balanced perspective and focus on the client's needs. Avoid specialized terminology unless necessary.",
+    example: "I understand what you're saying. Let's explore this further together."
+  }
+};
+
 export async function POST(req: Request) {
   try {
-    console.log('Received chat request');
-    
-    // Parse request body
-    const body = await req.json();
-    console.log('Request body:', body);
-    
-    const { message, sessionId, mode } = body;
+    const { messages, mode, role, persona, session_id } = await req.json();
 
-    if (!message) {
-      console.error('Missing message in request');
+    if (!messages || !Array.isArray(messages)) {
       return NextResponse.json(
-        { error: 'Message is required' },
+        { error: 'Messages array is required' },
         { status: 400 }
       );
     }
 
-    // Validate mode
     if (!isValidMode(mode)) {
       return NextResponse.json(
-        { error: 'Invalid mode selected', details: `Mode '${mode}' is not supported` },
+        { error: 'Invalid mode specified' },
         { status: 400 }
       );
     }
 
-    // Check if OpenAI API key is set
-    if (!process.env.OPENAI_API_KEY) {
-      console.error('OpenAI API key is not set');
-      return NextResponse.json(
-        { error: 'OpenAI API key is not configured' },
-        { status: 500 }
-      );
+    // Get the base system prompt
+    let systemPrompt = getSystemPrompt(mode, role);
+
+    // Add persona-specific modifications to the system prompt
+    if (persona && persona !== 'Default') {
+      const personaConfig = personaPrompts[persona as keyof typeof personaPrompts];
+      if (personaConfig) {
+        systemPrompt += `\n\nRespond in the style of ${persona}, using a ${personaConfig.tone} tone. ${personaConfig.style}`;
+      }
     }
 
-    let currentSessionId = sessionId;
+    // Use default voice if not provided or invalid
+    const selectedVoice = persona === 'default' || !(persona in voicePrompts) ? 'default' : persona;
 
-    // If no sessionId provided, create a new session
+    // Combine mode and voice prompts
+    const combinedPrompt = `${systemPrompts[mode].prompt}\n\n${voicePrompts[selectedVoice as keyof typeof voicePrompts].prompt}`;
+
+    // Create or get session
+    let currentSessionId = session_id;
     if (!currentSessionId) {
-      console.log('Creating new session...');
       const { data: newSession, error: sessionError } = await supabase
         .from('sessions')
-        .insert([
-          { 
-            title: `New Chat ${new Date().toLocaleString()}`,
-            mode 
-          }
-        ])
+        .insert([{ mode }])
         .select()
         .single();
 
@@ -466,15 +444,12 @@ export async function POST(req: Request) {
       }
 
       currentSessionId = newSession.id;
-      console.log('Created new session:', currentSessionId);
     }
 
-    console.log('Fetching previous messages for session:', currentSessionId);
-    
-    // Fetch previous messages from Supabase
+    // Fetch previous messages
     const { data: previousMessages, error: fetchError } = await supabase
       .from('messages')
-      .select('role, content')
+      .select('*')
       .eq('session_id', currentSessionId)
       .order('created_at', { ascending: true });
 
@@ -486,129 +461,122 @@ export async function POST(req: Request) {
       );
     }
 
-    console.log('Previous messages:', previousMessages);
-
-    // Infer archetype from the message
-    const archetype = inferArchetype(message, mode, previousMessages);
-    
-    // Get a random poetic phrase based on the mode and archetype
-    const phrases = poeticPhrases[mode as keyof typeof poeticPhrases][archetype];
-    const poeticPhrase = phrases[Math.floor(Math.random() * phrases.length)];
-
-    // Update the system prompt selection
-    const systemPrompt = systemPrompts[mode as keyof typeof systemPrompts] || systemPrompts.plain;
-
-    // Format messages for GPT compatibility
+    // Format messages for OpenAI
     const formattedMessages: ChatCompletionMessageParam[] = [
-      { role: 'system', content: systemPrompt.prompt },
-      ...(previousMessages || []).map(msg => ({
-        role: msg.role === 'client' ? 'user' : 'assistant' as const,
-        content: msg.content
-      })) as ChatCompletionMessageParam[],
-      { role: 'user' as const, content: message }
+      {
+        role: 'system' as const,
+        content: systemPrompts[mode].prompt,
+        name: 'system'
+      },
+      ...messages.map(msg => ({
+        role: msg.role === 'Client' ? 'user' as const : 'assistant' as const,
+        content: msg.content,
+        name: msg.role === 'Client' ? 'user' : 'assistant'
+      }))
     ];
 
-    console.log('Sending request to OpenAI');
-    
-    try {
-      // Get completion from OpenAI
-      const completion = await openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: formattedMessages,
-      });
+    // Send to OpenAI
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4-turbo-preview",
+      messages: [
+        { role: "system", content: combinedPrompt },
+        ...formattedMessages
+      ],
+      temperature: 0.7,
+      max_tokens: 1000,
+    });
 
-      const reply = completion.choices[0].message.content;
-      console.log('Received OpenAI response');
+    const response = completion.choices[0].message.content;
+    const archetype = inferArchetype(response, mode, previousMessages || []);
 
-      // Prepend the poetic phrase to the reply
-      const formattedReply = `${poeticPhrase}\n\n${reply}`;
-
-      // Store messages in Supabase with archetype
-      console.log('Storing messages in Supabase');
-      
-      // Store client message
-      const { error: clientMessageError } = await supabase
-        .from('messages')
-        .insert([
-          { 
-            session_id: currentSessionId, 
-            role: 'client', 
-            content: message 
-          }
-        ]);
-
-      if (clientMessageError) {
-        console.error('Error storing client message:', clientMessageError);
-        return NextResponse.json(
-          { error: 'Failed to store client message', details: clientMessageError.message },
-          { status: 500 }
-        );
-      }
-
-      // Store Perdita message with archetype
-      const { error: perditaMessageError } = await supabase
-        .from('messages')
-        .insert([
-          { 
-            session_id: currentSessionId, 
-            role: 'Perdita', 
-            content: formattedReply,
-            archetype: archetype
-          }
-        ]);
-
-      if (perditaMessageError) {
-        console.error('Error storing Perdita message:', perditaMessageError);
-        return NextResponse.json(
-          { error: 'Failed to store Perdita message', details: perditaMessageError.message },
-          { status: 500 }
-        );
-      }
-
-      // Analyze conversation dynamics and update mode if needed
-      if (sessionId) {
-        const { shouldUpdateMode, newMode } = await analyzeConversationDynamics(
-          message,
-          mode,
-          sessionId
-        );
-
-        if (shouldUpdateMode && newMode) {
-          // Update session mode in Supabase
-          const { error: updateError } = await supabase
-            .from('sessions')
-            .update({ mode: newMode })
-            .eq('id', sessionId);
-
-          if (updateError) {
-            console.error('Error updating session mode:', updateError);
-          }
+    // Store messages in Supabase
+    const { error: storeError } = await supabase
+      .from('messages')
+      .insert([
+        ...messages.map(msg => ({
+          session_id: currentSessionId,
+          role: msg.role === 'Client' ? 'Client' : 'Therapist',
+          content: msg.content,
+          archetype,
+        })),
+        {
+          session_id: currentSessionId,
+          role: role === 'therapist' ? 'Therapist' : 'Helio',
+          content: response,
+          archetype,
         }
-      }
+      ]);
 
-      console.log('Successfully processed chat request');
-      return NextResponse.json({ 
-        reply: formattedReply,
-        sessionId: currentSessionId 
-      });
-    } catch (openaiError) {
-      console.error('OpenAI API error:', openaiError);
+    if (storeError) {
+      console.error('Error storing messages:', storeError);
       return NextResponse.json(
-        { 
-          error: 'Failed to get response from OpenAI',
-          details: openaiError instanceof Error ? openaiError.message : 'Unknown OpenAI error'
-        },
+        { error: 'Failed to store messages', details: storeError.message },
         { status: 500 }
       );
     }
+
+    return NextResponse.json({
+      response,
+      archetype,
+      sessionId: currentSessionId
+    });
   } catch (error) {
     console.error('Error in chat API:', error);
-    return NextResponse.json(
-      { 
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-} 
+}
+
+function getSystemPrompt(mode: string, role: string): string {
+  const modePrompt = systemPrompts[mode as keyof typeof systemPrompts];
+  if (!modePrompt) {
+    console.error(`Invalid mode: ${mode}`);
+    return systemPrompts.plain.prompt;
+  }
+  
+  const basePrompt = modePrompt.prompt;
+  
+  switch (role) {
+    case 'client':
+      return `${basePrompt}\n\nYou are responding to a client seeking self-reflection and personal growth.`;
+    case 'therapist':
+      return `${basePrompt}\n\nYou are supporting a therapist using IFS in their practice. Focus on therapeutic process and part work.`;
+    case 'clinician':
+      return `${basePrompt}\n\nYou are assisting a mental health professional. Provide evidence-based interventions and clinical insights.`;
+    default:
+      return basePrompt;
+  }
+}
+
+const getRecentMessages = async (sessionId: string, count: number = 5): Promise<Message[]> => {
+  const { data: messages, error } = await supabase
+    .from('messages')
+    .select('*')
+    .eq('session_id', sessionId)
+    .order('created_at', { ascending: false })
+    .limit(count);
+
+  if (error) {
+    console.error('Error fetching recent messages:', error);
+    return [];
+  }
+
+  return messages || [];
+};
+
+const getDominantArchetype = (messages: Message[]): Archetype => {
+  const archetypeCounts: ArchetypeCounts = {
+    Self: 0,
+    protector: 0,
+    exile: 0,
+    firefighter: 0
+  };
+
+  messages.forEach(msg => {
+    if (msg.archetype && msg.archetype in archetypeCounts) {
+      archetypeCounts[msg.archetype as keyof ArchetypeCounts]++;
+    }
+  });
+
+  return Object.entries(archetypeCounts)
+    .reduce((a, b) => a[1] > b[1] ? a : b)[0] as Archetype;
+}; 

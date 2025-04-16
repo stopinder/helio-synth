@@ -1,0 +1,1 @@
+export type VoiceType = 'Gurdjieff' | 'Osho' | 'Rogers' | 'Clinical'; 

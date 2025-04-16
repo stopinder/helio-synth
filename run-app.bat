@@ -1,0 +1,6 @@
+@echo off
+echo 🚀 Stopping any running Docker containers...
+docker-compose -f docker-compose.dev.yml down
+
+echo 🔧 Rebuilding and starting your Docker app...
+docker-compose -f docker-compose.dev.yml up --build --force-recreate
