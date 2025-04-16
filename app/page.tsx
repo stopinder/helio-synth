@@ -44,7 +44,7 @@ type Session = {
 
 type PromptMode = 'heliosynthesis' | 'plain' | 'mythic' | 'clinical' | 'cbt' | 'spiritual' | 'gurdjieff' | 'personCentred' | 'transactionalAnalysis';
 type RoleType = 'client' | 'therapist' | 'clinician';
-type PersonaType = 'Gurdjieff' | 'Osho' | 'Rogers' | 'Clinical' | 'Default';
+type PersonaType = 'Gurdjieff' | 'Osho' | 'Rogers' | 'Clinical' | 'Default' | 'analyst' | 'therapist' | 'mythologist';
 type Archetype = 'Self' | 'protector' | 'exile' | 'firefighter';
 
 type ChatCompletionMessageParam = {
@@ -239,22 +239,6 @@ export default function ChatPage() {
   const [isThinking, setIsThinking] = useState<boolean>(false);
   const [lastMessage, setLastMessage] = useState<Message | null>(null);
 
-  const fetchMessages = async (sessionId: string) => {
-    if (!sessionId) return;
-    setIsLoadingMessages(true);
-    try {
-      const response = await fetch(`/api/messages?sessionId=${sessionId}`);
-      if (!response.ok) throw new Error('Failed to fetch messages');
-      const data = await response.json();
-      setMessages(data.messages || []);
-    } catch (error) {
-      console.error('Error fetching messages:', error);
-      setError('Failed to load messages');
-    } finally {
-      setIsLoadingMessages(false);
-    }
-  };
-
   const fetchSessions = async () => {
     try {
       setIsLoadingSessions(true);
@@ -268,6 +252,22 @@ export default function ChatPage() {
       console.error('Error fetching sessions:', error);
     } finally {
       setIsLoadingSessions(false);
+    }
+  };
+
+  const fetchMessages = async (sessionId: string) => {
+    if (!sessionId) return;
+    setIsLoadingMessages(true);
+    try {
+      const response = await fetch(`/api/messages?sessionId=${sessionId}`);
+      if (!response.ok) throw new Error('Failed to fetch messages');
+      const data = await response.json();
+      setMessages(data.messages || []);
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+      setError('Failed to load messages');
+    } finally {
+      setIsLoadingMessages(false);
     }
   };
 
@@ -573,7 +573,7 @@ export default function ChatPage() {
               <div className="flex-1">
                 <Select
                   value={selectedMode}
-                  onValueChange={(value) => setSelectedMode(value as PromptMode)}
+                  onValueChange={(value: string) => setSelectedMode(value as PromptMode)}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select mode" />
@@ -588,7 +588,7 @@ export default function ChatPage() {
               <div className="flex-1">
                 <Select
                   value={selectedPersona}
-                  onValueChange={(value) => setSelectedPersona(value as PersonaType)}
+                  onValueChange={(value: string) => setSelectedPersona(value as PersonaType)}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select persona" />
