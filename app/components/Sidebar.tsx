@@ -18,7 +18,7 @@ type Session = {
 type SidebarProps = {
   onNewSession: () => void;
   onSelectSession: (sessionId: string) => void;
-  currentSessionId?: string;
+  currentSessionId: string | null;
 };
 
 export function Sidebar({ onNewSession, onSelectSession, currentSessionId }: SidebarProps) {

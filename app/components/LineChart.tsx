@@ -1,6 +1,27 @@
 import { Card } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { archetypeStyles } from "@/lib/prompts";
+import { Line as ChartJSLine } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip as ChartJSTooltip,
+  Legend
+} from 'chart.js';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  ChartJSTooltip,
+  Legend
+);
 
 interface ChartData {
   timestamp: string;
@@ -8,10 +29,18 @@ interface ChartData {
 }
 
 interface LineChartProps {
-  data: ChartData[];
+  data: {
+    labels: string[];
+    datasets: {
+      label: string;
+      data: number[];
+      borderColor: string;
+      backgroundColor: string;
+    }[];
+  };
 }
 
-export function MessageChart({ data }: LineChartProps) {
+export function LineChart({ data }: LineChartProps) {
   const renderDot = (props: any) => {
     const { cx, cy, payload } = props;
     if (!payload || !payload.archetype) return null as unknown as JSX.Element;
@@ -36,34 +65,17 @@ export function MessageChart({ data }: LineChartProps) {
     <Card className="p-4">
       <div className="h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-            <XAxis 
-              dataKey="timestamp" 
-              stroke="#9CA3AF"
-              tick={{ fill: '#9CA3AF' }}
-            />
-            <YAxis 
-              stroke="#9CA3AF"
-              tick={{ fill: '#9CA3AF' }}
-            />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: '#1F2937',
-                border: '1px solid #374151',
-                borderRadius: '0.5rem'
-              }}
-              labelStyle={{ color: '#9CA3AF' }}
-              itemStyle={{ color: '#9CA3AF' }}
-            />
-            <Line
-              type="monotone"
-              dataKey="archetype"
-              stroke="#3B82F6"
-              strokeWidth={2}
-              dot={renderDot}
-            />
-          </LineChart>
+          <ChartJSLine
+            data={data}
+            options={{
+              responsive: true,
+              plugins: {
+                legend: {
+                  position: 'top' as const,
+                },
+              },
+            }}
+          />
         </ResponsiveContainer>
       </div>
     </Card>

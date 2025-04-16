@@ -23,6 +23,8 @@ import OpenAI from 'openai';
 import { Sidebar } from './components/Sidebar';
 import { RightSidebar } from './components/RightSidebar';
 import supabase from '@/lib/supabase';
+import { SessionAccordion } from '@/components/SessionAccordion';
+import { createClient } from '@supabase/supabase-js';
 
 type Message = {
   id: string;
@@ -213,26 +215,27 @@ type Transformation = {
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState<string>('');
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [selectedMode, setSelectedMode] = useState<PromptMode>('heliosynthesis');
-  const [selectedRole, setSelectedRole] = useState<RoleType>('therapist');
+  const [input, setInput] = useState('');
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [selectedPersona, setSelectedPersona] = useState<PersonaType>('Default');
+  const [selectedMode, setSelectedMode] = useState<PromptMode>('heliosynthesis');
+  const [selectedRole, setSelectedRole] = useState<RoleType>('client');
+  const [isBotTyping, setIsBotTyping] = useState(false);
+  const [selectedSession, setSelectedSession] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [currentSessionId, setCurrentSessionId] = useState<string>('');
   const [isNewSession, setIsNewSession] = useState<boolean>(false);
   const [isLoadingSessions, setIsLoadingSessions] = useState<boolean>(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState<boolean>(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [error, setError] = useState<string | null>(null);
   const [visibleArchetypes, setVisibleArchetypes] = useState<Set<string>>(new Set());
   const [journeyPhase, setJourneyPhase] = useState<string>('exploration');
   const [progress, setProgress] = useState<number>(0);
   const [typingMessages, setTypingMessages] = useState<Set<string>>(new Set());
-  const [showScrollButton, setShowScrollButton] = useState<boolean>(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const [isBotTyping, setIsBotTyping] = useState<boolean>(false);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [isThinking, setIsThinking] = useState<boolean>(false);
   const [lastMessage, setLastMessage] = useState<Message | null>(null);
 
@@ -268,9 +271,49 @@ export default function ChatPage() {
     }
   };
 
-  const handleSelectSession: (sessionId: string) => Promise<void> = async (sessionId: string) => {
+  const handleNewSession = async () => {
+    const { data: session } = await supabase.from("sessions").insert({
+      title: "New Session",
+      mode: "chat",
+    }).select().single();
+
+    if (session) {
+      await fetchSessions();
+      setCurrentSessionId(session.id);
+    }
+  };
+
+  const handleSelectSession = async (sessionId: string) => {
+    setSelectedSession(sessionId);
     setCurrentSessionId(sessionId);
     await fetchMessages(sessionId);
+  };
+
+  const handleResponse = (response: string | null) => {
+    if (response && typeof response === 'string') {
+      const archetype = inferArchetype(response);
+      if (archetype && lastMessage) {
+        setLastMessage(prev => prev ? { ...prev, archetype } : null);
+      }
+    }
+  };
+
+  const inferArchetype = (content: string | null): Archetype | undefined => {
+    if (!content) return undefined;
+
+    const archetypePatterns: Record<Archetype, RegExp> = {
+      'Self': /self|core|center|essence/i,
+      'protector': /protector|guardian|defender|shield/i,
+      'exile': /exile|vulnerable|hurt|wounded/i,
+      'firefighter': /firefighter|emergency|react|action/i
+    };
+
+    for (const [archetype, pattern] of Object.entries(archetypePatterns)) {
+      if (pattern.test(content)) {
+        return archetype as Archetype;
+      }
+    }
+    return undefined;
   };
 
   // Auto-scroll to bottom when messages change
@@ -516,48 +559,6 @@ export default function ChatPage() {
     }
   };
 
-  // Add handleNewSession function
-  const handleNewSession = async () => {
-    const { data: session } = await supabase.from("sessions").insert({
-      title: "New Session",
-      mode: "chat",
-    }).select().single();
-
-    if (session) {
-      await fetchSessions();
-      setCurrentSessionId(session.id);
-    }
-  };
-
-  // Add null check for response
-  const handleResponse = (response: string | null) => {
-    if (response && typeof response === 'string') {
-      const archetype = inferArchetype(response);
-      if (archetype && lastMessage) {
-        setLastMessage(prev => prev ? { ...prev, archetype } : null);
-      }
-    }
-  };
-
-  // Add type for inferArchetype function
-  const inferArchetype = (content: string | null): Archetype | undefined => {
-    if (!content) return undefined;
-
-    const archetypePatterns: Record<Archetype, RegExp> = {
-      'Self': /self|core|center|essence/i,
-      'protector': /protector|guardian|defender|shield/i,
-      'exile': /exile|vulnerable|hurt|wounded/i,
-      'firefighter': /firefighter|emergency|react|action/i
-    };
-
-    for (const [archetype, pattern] of Object.entries(archetypePatterns)) {
-      if (pattern.test(content)) {
-        return archetype as Archetype;
-      }
-    }
-    return undefined;
-  };
-
   return (
     <div className="flex h-screen">
       <Sidebar
@@ -572,7 +573,7 @@ export default function ChatPage() {
               <div className="flex-1">
                 <Select
                   value={selectedMode}
-                  onValueChange={setSelectedMode}
+                  onValueChange={(value) => setSelectedMode(value as PromptMode)}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select mode" />
@@ -587,7 +588,7 @@ export default function ChatPage() {
               <div className="flex-1">
                 <Select
                   value={selectedPersona}
-                  onValueChange={setSelectedPersona}
+                  onValueChange={(value) => setSelectedPersona(value as PersonaType)}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select persona" />

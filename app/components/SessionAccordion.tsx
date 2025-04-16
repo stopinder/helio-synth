@@ -4,27 +4,22 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useState, useRef, KeyboardEvent } from 'react';
 import * as Tooltip from '@radix-ui/react-tooltip';
-
-interface Session {
-  id: string;
-  title: string;
-  mode: string;
-  created_at: string;
-}
+import { Session } from '@/types/session';
 
 interface SessionAccordionProps {
   sessions: Session[];
   onSelectSession: (sessionId: string) => void;
-  currentSessionId?: string;
+  currentSessionId: string | null;
   onRenameSession: (sessionId: string, newTitle: string) => void;
 }
 
-export function SessionAccordion({ 
-  sessions, 
-  onSelectSession, 
+export function SessionAccordion({
+  sessions,
+  onSelectSession,
   currentSessionId,
-  onRenameSession 
+  onRenameSession,
 }: SessionAccordionProps) {
+  const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set());
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const editInputRef = useRef<HTMLInputElement>(null);
@@ -96,6 +91,18 @@ export function SessionAccordion({
     } else if (e.key === 'Escape') {
       setEditingSessionId(null);
     }
+  };
+
+  const toggleSession = (sessionId: string) => {
+    setExpandedSessions((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(sessionId)) {
+        newSet.delete(sessionId);
+      } else {
+        newSet.add(sessionId);
+      }
+      return newSet;
+    });
   };
 
   return (
