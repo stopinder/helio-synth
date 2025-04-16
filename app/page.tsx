@@ -219,6 +219,7 @@ export default function ChatPage() {
   const [selectedPersona, setSelectedPersona] = useState<PersonaType>('Default');
   const [sessions, setSessions] = useState<Session[]>([]);
   const [selectedSession, setSelectedSession] = useState<string>('');
+  const [currentSessionId, setCurrentSessionId] = useState<string>('');
   const [isNewSession, setIsNewSession] = useState<boolean>(false);
   const [isLoadingSessions, setIsLoadingSessions] = useState<boolean>(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState<boolean>(false);
@@ -234,12 +235,28 @@ export default function ChatPage() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [isThinking, setIsThinking] = useState<boolean>(false);
   const [lastMessage, setLastMessage] = useState<Message | null>(null);
-  const [currentSessionId, setCurrentSessionId] = useState<string>('');
 
-  const handleSelectSession = (sessionId: string) => {
-    setCurrentSessionId(sessionId);
+  const handleSelectSession = async (sessionId: string) => {
     setSelectedSession(sessionId);
-    fetchMessages();
+    setCurrentSessionId(sessionId);
+    await fetchMessages(sessionId);
+  };
+
+  const fetchMessages = async (sessionId: string) => {
+    if (!sessionId) return;
+    setIsLoadingMessages(true);
+    try {
+      const response = await fetch(`/api/messages?sessionId=${sessionId}`);
+      const response = await fetch(`/api/messages?sessionId=${selectedSession}`);
+      if (!response.ok) throw new Error('Failed to fetch messages');
+      const data = await response.json();
+      setMessages(data.messages || []);
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+      setError('Failed to load messages');
+    } finally {
+      setIsLoadingMessages(false);
+    }
   };
 
   // Auto-scroll to bottom when messages change
@@ -326,30 +343,6 @@ export default function ChatPage() {
     };
     fetchSessions();
   }, []);
-
-  // Fetch messages when session changes
-  useEffect(() => {
-    if (selectedSession) {
-      const fetchMessages = async () => {
-        try {
-          setIsLoadingMessages(true);
-          const response = await fetch(`/api/messages?sessionId=${selectedSession}`);
-          if (!response.ok) {
-            throw new Error('Failed to fetch messages');
-          }
-          const data = await response.json();
-          setMessages(data.messages || []);
-        } catch (error) {
-          console.error('Error fetching messages:', error);
-        } finally {
-          setIsLoadingMessages(false);
-        }
-      };
-      fetchMessages();
-    } else {
-      setMessages([]);
-    }
-  }, [selectedSession]);
 
   // Update journey phase and progress based on messages
   useEffect(() => {
@@ -595,8 +588,8 @@ export default function ChatPage() {
             <div className="flex items-center justify-between gap-4">
               <div className="flex-1">
                 <Select
-                  value={mode}
-                  onValueChange={setMode}
+                  value={selectedMode}
+                  onValueChange={setSelectedMode}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select mode" />
@@ -610,8 +603,8 @@ export default function ChatPage() {
               </div>
               <div className="flex-1">
                 <Select
-                  value={persona}
-                  onValueChange={setPersona}
+                  value={selectedPersona}
+                  onValueChange={setSelectedPersona}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select persona" />

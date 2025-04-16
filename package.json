@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev -p 3001 -H 127.0.0.1",
-    "build": "next build --no-lint",
+    "build": "next build",
     "start": "next start",
     "deploy": "git add . && git commit -m \"force clean deploy on Vercel\" && git push",
     "lint": "next lint"

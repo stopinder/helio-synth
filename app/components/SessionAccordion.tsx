@@ -53,7 +53,6 @@ export function SessionAccordion({
   };
 
   const handleSessionClick = (session: Session) => {
-    console.log('Selected session:', session.title);
     onSelectSession(session.id);
   };
 
