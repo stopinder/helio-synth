@@ -434,7 +434,7 @@ export default function ChatPage() {
         content: input,
         role: 'Client',
         created_at: new Date().toISOString(),
-        session_id: selectedSession || ''
+        session_id: currentSessionId || ''
       };
 
       setMessages(prev => [...prev, userMessage]);
@@ -469,7 +469,7 @@ export default function ChatPage() {
           mode: selectedMode,
           role: selectedRole,
           persona: selectedPersona,
-          sessionId: selectedSession,
+          sessionId: currentSessionId,
           dominantArchetype
         }),
       });
@@ -490,7 +490,7 @@ export default function ChatPage() {
         role: 'Helio',
         archetype: data.archetype || 'Self',
         created_at: new Date().toISOString(),
-        session_id: data.sessionId || selectedSession || ''
+        session_id: data.sessionId || currentSessionId || ''
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -534,7 +534,7 @@ export default function ChatPage() {
       }
 
       const newSession = await response.json();
-      setSelectedSession(newSession.id);
+      setCurrentSessionId(newSession.id);
       setMessages([]);
       setSessions(prev => [...prev, newSession]);
     } catch (err) {
