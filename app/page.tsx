@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, Plus } from 'lucide-react';
 import { Card } from "@/app/ui/card";
 import { Input } from "@/app/ui/input";
 import { Button } from "@/app/ui/button";
@@ -20,6 +20,8 @@ import { StarryBackground } from './components/StarryBackground';
 import { systemPrompts } from './prompts';
 import { ThinkingAnimation } from './components/ThinkingAnimation';
 import OpenAI from 'openai';
+import { Sidebar } from './components/Sidebar';
+import { RightSidebar } from './components/RightSidebar';
 
 type Message = {
   id: string;
@@ -232,6 +234,7 @@ export default function ChatPage() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [isThinking, setIsThinking] = useState<boolean>(false);
   const [lastMessage, setLastMessage] = useState<Message | null>(null);
+  const [currentSessionId, setCurrentSessionId] = useState<string>('');
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -574,212 +577,164 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white">
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
-        <header className="bg-gray-900 p-4 border-b border-gray-800 flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <h1 className="text-2xl font-bold text-blue-400">Heliosynthesis</h1>
-            <div className="flex items-center gap-2 p-4 border-b border-gray-800">
-              <Select value={selectedMode} onValueChange={(value: PromptMode) => setSelectedMode(value)}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select mode" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem key="mode-heliosynthesis" value="heliosynthesis">Heliosynthesis</SelectItem>
-                  <SelectItem key="mode-plain" value="plain">Plain</SelectItem>
-                  <SelectItem key="mode-mythic" value="mythic">Mythic</SelectItem>
-                  <SelectItem key="mode-clinical" value="clinical">Clinical</SelectItem>
-                  <SelectItem key="mode-cbt" value="cbt">CBT</SelectItem>
-                  <SelectItem key="mode-spiritual" value="spiritual">Spiritual</SelectItem>
-                  <SelectItem key="mode-gurdjieff" value="gurdjieff">Gurdjieff</SelectItem>
-                  <SelectItem key="mode-personCentred" value="personCentred">Person-Centred</SelectItem>
-                  <SelectItem key="mode-transactionalAnalysis" value="transactionalAnalysis">Transactional Analysis</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select 
-                value={selectedPersona} 
-                onValueChange={(value: PersonaType) => setSelectedPersona(value)}
-              >
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select persona" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem key="persona-default" value="Default">Default (Neutral)</SelectItem>
-                  <SelectItem key="persona-gurdjieff" value="Gurdjieff">Gurdjieff</SelectItem>
-                  <SelectItem key="persona-osho" value="Osho">Osho</SelectItem>
-                  <SelectItem key="persona-rogers" value="Rogers">Rogers (Person-Centred)</SelectItem>
-                  <SelectItem key="persona-clinical" value="Clinical">Clinical</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={selectedRole} onValueChange={(value: RoleType) => setSelectedRole(value)}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem key="role-therapist" value="therapist">Therapist</SelectItem>
-                  <SelectItem key="role-guide" value="therapist">Guide</SelectItem>
-                  <SelectItem key="role-mentor" value="therapist">Mentor</SelectItem>
-                  <SelectItem key="role-friend" value="client">Friend</SelectItem>
-                  <SelectItem key="role-teacher" value="therapist">Teacher</SelectItem>
-                  <SelectItem key="role-coach" value="therapist">Coach</SelectItem>
-                  <SelectItem key="role-counselor" value="therapist">Counselor</SelectItem>
-                  <SelectItem key="role-healer" value="therapist">Healer</SelectItem>
-                  <SelectItem key="role-sage" value="therapist">Sage</SelectItem>
-                  <SelectItem key="role-companion" value="client">Companion</SelectItem>
-                  <SelectItem key="role-listener" value="client">Listener</SelectItem>
-                  <SelectItem key="role-supporter" value="client">Supporter</SelectItem>
-                  <SelectItem key="role-ally" value="client">Ally</SelectItem>
-                  <SelectItem key="role-confidant" value="client">Confidant</SelectItem>
-                  <SelectItem key="role-partner" value="client">Partner</SelectItem>
-                  <SelectItem key="role-facilitator" value="therapist">Facilitator</SelectItem>
-                  <SelectItem key="role-advocate" value="therapist">Advocate</SelectItem>
-                  <SelectItem key="role-nurturer" value="therapist">Nurturer</SelectItem>
-                  <SelectItem key="role-empath" value="therapist">Empath</SelectItem>
-                  <SelectItem key="role-witness" value="therapist">Witness</SelectItem>
-                  <SelectItem key="role-mirror" value="therapist">Mirror</SelectItem>
-                  <SelectItem key="role-reflector" value="therapist">Reflector</SelectItem>
-                  <SelectItem key="role-validator" value="therapist">Validator</SelectItem>
-                  <SelectItem key="role-acknowledger" value="therapist">Acknowledger</SelectItem>
-                  <SelectItem key="role-space-holder" value="therapist">Space Holder</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </header>
-
-        {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto p-4">
-          <div className="max-w-7xl mx-auto h-full flex">
-            {/* Chat Area */}
-            <div className="flex-1 flex flex-col">
-              <div className="flex-1 overflow-hidden mb-4 relative">
-                <Card className="h-full bg-gray-800/50 border border-gray-700 backdrop-blur-sm">
-                  <ScrollArea 
-                    ref={scrollAreaRef}
-                    className="h-full p-4"
-                    style={{ maxHeight: 'calc(100vh - 200px)' }}
-                  >
-                    <div className="space-y-4 pb-4">
-                      {messages.map((message) => (
-                        <div
-                          key={message.id}
-                          className={cn(
-                            "p-4 rounded-lg mb-4",
-                            message.role === 'Client' && "bg-gray-800",
-                            message.role === 'Helio' && "bg-blue-900/50",
-                            message.role === 'Therapist' && "bg-purple-900/50",
-                            message.archetype === 'Self' && "bg-yellow-900/50",
-                            message.archetype === 'protector' && "bg-purple-900/50",
-                            message.archetype === 'exile' && "bg-blue-900/50",
-                            message.archetype === 'firefighter' && "bg-red-900/50"
-                          )}
-                        >
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className={cn(
-                              "font-semibold",
-                              message.role === 'Client' && "text-gray-300",
-                              message.role === 'Helio' && "text-blue-300",
-                              message.role === 'Therapist' && "text-purple-300",
-                              message.archetype === 'Self' && "text-yellow-300",
-                              message.archetype === 'protector' && "text-purple-300",
-                              message.archetype === 'exile' && "text-blue-300",
-                              message.archetype === 'firefighter' && "text-red-300"
-                            )}>
-                              {message.role}
-                            </span>
-                            {message.archetype && (
-                              <Badge
-                                key={`${message.id}-badge`}
-                                variant="outline"
-                                className={cn(
-                                  "ml-2",
-                                  message.archetype === 'Self' && "bg-yellow-900/50 text-yellow-300 border-yellow-500",
-                                  message.archetype === 'protector' && "bg-purple-900/50 text-purple-300 border-purple-500",
-                                  message.archetype === 'exile' && "bg-blue-900/50 text-blue-300 border-blue-500",
-                                  message.archetype === 'firefighter' && "bg-red-900/50 text-red-300 border-red-500"
-                                )}
-                              >
-                                {message.archetype}
-                              </Badge>
-                            )}
-                          </div>
-                          <TypingMessage
-                            key={`${message.id}-typing`}
-                            message={message.content}
-                            role={message.role}
-                            archetype={message.archetype}
-                          />
-                        </div>
-                      ))}
-                      {isThinking && (
-                        <div className="flex flex-col space-y-2 p-4 rounded-lg bg-gray-800">
-                          <div className="flex items-center space-x-2">
-                            <span className="font-semibold text-gray-300">Helio</span>
-                          </div>
-                          <ThinkingAnimation isThinking={true} />
-                        </div>
-                      )}
-                      <div ref={messagesContainerRef} style={{ height: '1px' }} />
-                    </div>
-                  </ScrollArea>
-                </Card>
-              </div>
-
-              <div className="flex-none">
-                <form onSubmit={handleSubmit} className="flex gap-2">
-                  <Input
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder="Type your message..."
-                    className="flex-1 bg-gray-800/50 border-gray-700 text-white placeholder-gray-400 backdrop-blur-sm"
-                  />
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="px-4 py-2 bg-gray-800/50 text-gray-200 rounded-lg border border-gray-700 hover:bg-gray-700/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isLoading ? (
-                      <div className="flex items-center space-x-2">
-                        <div className="w-4 h-4 border-2 border-gray-200 border-t-transparent rounded-full animate-spin" />
-                        <span>Sending...</span>
-                      </div>
-                    ) : (
-                      'Send'
-                    )}
-                  </button>
-                </form>
-              </div>
-            </div>
-
-            {/* Right Sidebar */}
-            <div className="w-64 bg-gray-800 border-l border-gray-700/30">
-              <div className="p-4 border-b border-gray-700/30">
-                <div className="flex justify-between items-center mb-2">
-                  <h2 className="text-lg font-semibold text-gray-200">Sessions</h2>
-                  <button
-                    onClick={handleNewSession}
-                    disabled={isLoading}
-                    className="px-3 py-1 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors disabled:opacity-50"
-                  >
-                    New Session
-                  </button>
-                </div>
-                <select
-                  value={selectedSession || ''}
-                  onChange={(e) => setSelectedSession(e.target.value)}
-                  className="w-full mt-2 bg-gray-700 text-white px-3 py-2 rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500"
+    <div className="flex h-screen">
+      <Sidebar
+        onNewSession={handleNewSession}
+        onSelectSession={handleSelectSession}
+        activeSessionId={activeSessionId}
+      />
+      <div className="flex-1 ml-[280px]">
+        <div className="h-full flex flex-col">
+          <header className="border-b p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-1">
+                <Select
+                  value={mode}
+                  onValueChange={setMode}
                 >
-                  <option key="default-session" value="">Select a session</option>
-                  {sessions.map((session) => (
-                    <option key={session.id} value={session.id}>
-                      {session.title || new Date(session.created_at).toLocaleString()}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select mode" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="heliosynthesis">Heliosynthesis</SelectItem>
+                    <SelectItem value="plain">Plain</SelectItem>
+                    <SelectItem value="mythic">Mythic</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+              <div className="flex-1">
+                <Select
+                  value={persona}
+                  onValueChange={setPersona}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select persona" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="analyst">Analyst</SelectItem>
+                    <SelectItem value="therapist">Therapist</SelectItem>
+                    <SelectItem value="mythologist">Mythologist</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex-1">
+                <Button
+                  className="w-full"
+                  onClick={handleNewSession}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  New Session
+                </Button>
+              </div>
+            </div>
+          </header>
+
+          {/* Messages Area */}
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="max-w-7xl mx-auto h-full flex">
+              {/* Chat Area */}
+              <div className="flex-1 flex flex-col">
+                <div className="flex-1 overflow-hidden mb-4 relative">
+                  <Card className="h-full bg-gray-800/50 border border-gray-700 backdrop-blur-sm">
+                    <ScrollArea 
+                      ref={scrollAreaRef}
+                      className="h-full p-4"
+                      style={{ maxHeight: 'calc(100vh - 200px)' }}
+                    >
+                      <div className="space-y-4 pb-4">
+                        {messages.map((message) => (
+                          <div
+                            key={message.id}
+                            className={cn(
+                              "p-4 rounded-lg mb-4",
+                              message.role === 'Client' && "bg-gray-800",
+                              message.role === 'Helio' && "bg-blue-900/50",
+                              message.role === 'Therapist' && "bg-purple-900/50",
+                              message.archetype === 'Self' && "bg-yellow-900/50",
+                              message.archetype === 'protector' && "bg-purple-900/50",
+                              message.archetype === 'exile' && "bg-blue-900/50",
+                              message.archetype === 'firefighter' && "bg-red-900/50"
+                            )}
+                          >
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className={cn(
+                                "font-semibold",
+                                message.role === 'Client' && "text-gray-300",
+                                message.role === 'Helio' && "text-blue-300",
+                                message.role === 'Therapist' && "text-purple-300",
+                                message.archetype === 'Self' && "text-yellow-300",
+                                message.archetype === 'protector' && "text-purple-300",
+                                message.archetype === 'exile' && "text-blue-300",
+                                message.archetype === 'firefighter' && "text-red-300"
+                              )}>
+                                {message.role}
+                              </span>
+                              {message.archetype && (
+                                <Badge
+                                  key={`${message.id}-badge`}
+                                  variant="outline"
+                                  className={cn(
+                                    "ml-2",
+                                    message.archetype === 'Self' && "bg-yellow-900/50 text-yellow-300 border-yellow-500",
+                                    message.archetype === 'protector' && "bg-purple-900/50 text-purple-300 border-purple-500",
+                                    message.archetype === 'exile' && "bg-blue-900/50 text-blue-300 border-blue-500",
+                                    message.archetype === 'firefighter' && "bg-red-900/50 text-red-300 border-red-500"
+                                  )}
+                                >
+                                  {message.archetype}
+                                </Badge>
+                              )}
+                            </div>
+                            <TypingMessage
+                              key={`${message.id}-typing`}
+                              message={message.content}
+                              role={message.role}
+                              archetype={message.archetype}
+                            />
+                          </div>
+                        ))}
+                        {isThinking && (
+                          <div className="flex flex-col space-y-2 p-4 rounded-lg bg-gray-800">
+                            <div className="flex items-center space-x-2">
+                              <span className="font-semibold text-gray-300">Helio</span>
+                            </div>
+                            <ThinkingAnimation isThinking={true} />
+                          </div>
+                        )}
+                        <div ref={messagesContainerRef} style={{ height: '1px' }} />
+                      </div>
+                    </ScrollArea>
+                  </Card>
+                </div>
+
+                <div className="flex-none">
+                  <form onSubmit={handleSubmit} className="flex gap-2">
+                    <Input
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      placeholder="Type your message..."
+                      className="flex-1 bg-gray-800/50 border-gray-700 text-white placeholder-gray-400 backdrop-blur-sm"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="px-4 py-2 bg-gray-800/50 text-gray-200 rounded-lg border border-gray-700 hover:bg-gray-700/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isLoading ? (
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 border-2 border-gray-200 border-t-transparent rounded-full animate-spin" />
+                          <span>Sending...</span>
+                        </div>
+                      ) : (
+                        'Send'
+                      )}
+                    </button>
+                  </form>
+                </div>
+              </div>
+
+              {/* Right Sidebar */}
+              <RightSidebar sessionId={currentSessionId} />
             </div>
           </div>
         </div>

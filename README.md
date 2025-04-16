@@ -4,10 +4,7 @@ A modern chat interface with multiple prompt modes powered by OpenAI.
 
 ## Features
 
-- Three distingit add .
-git commit -m "trigger Vercel redeploy"
-git push
-ct prompt modes: Heliosynthesis, Plain, and Mythic
+- Three distinct prompt modes: Heliosynthesis, Plain, and Mythic
 - Modern, responsive UI with message bubbles
 - Real-time loading animations
 - Mobile-friendly design
@@ -51,5 +48,4 @@ ct prompt modes: Heliosynthesis, Plain, and Mythic
 - React 18
 - TypeScript
 - Tailwind CSS
-- OpenAI API 
-Update to force clean deploy on Vercel ✅
+- OpenAI API

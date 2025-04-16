@@ -1,0 +1,9 @@
+{
+  "commands": [
+    {
+      "command": "extension.pushToVercel",
+      "title": "Push to Vercel",
+      "category": "Helio Synth"
+    }
+  ]
+} 
