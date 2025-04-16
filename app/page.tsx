@@ -218,7 +218,6 @@ export default function ChatPage() {
   const [selectedRole, setSelectedRole] = useState<RoleType>('therapist');
   const [selectedPersona, setSelectedPersona] = useState<PersonaType>('Default');
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [selectedSession, setSelectedSession] = useState<string>('');
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
   const [isNewSession, setIsNewSession] = useState<boolean>(false);
   const [isLoadingSessions, setIsLoadingSessions] = useState<boolean>(true);
