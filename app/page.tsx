@@ -253,7 +253,6 @@ export default function ChatPage() {
   };
 
   const handleSelectSession = async (sessionId: string) => {
-    setSelectedSession(sessionId);
     setCurrentSessionId(sessionId);
     await fetchMessages(sessionId);
   };
