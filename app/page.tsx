@@ -236,6 +236,11 @@ export default function ChatPage() {
   const [lastMessage, setLastMessage] = useState<Message | null>(null);
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
 
+  const handleSelectSession = (sessionId: string) => {
+    setCurrentSessionId(sessionId);
+    fetchMessages();
+  };
+
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     if (scrollAreaRef.current) {
