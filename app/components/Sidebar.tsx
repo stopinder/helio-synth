@@ -7,13 +7,7 @@ import { Input } from '@/app/ui/input';
 import { Button } from '@/app/ui/button';
 import { SessionAccordion } from './SessionAccordion';
 import supabase from '@/lib/supabase';
-
-type Session = {
-  id: string;
-  title: string;
-  mode: string;
-  created_at: string;
-};
+import { Session } from '@/types/session';
 
 type SidebarProps = {
   onNewSession: () => void;

@@ -1,4 +1,4 @@
-import { Card } from "@/components/ui/card";
+import { Card } from "@/app/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { archetypeStyles } from "@/lib/prompts";
 import { Line as ChartJSLine } from 'react-chartjs-2';

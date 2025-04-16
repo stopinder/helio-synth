@@ -8,72 +8,25 @@ import { Button } from "@/app/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/ui/select";
 import { cn } from "@/lib/utils";
 import styles from './animations.module.css';
-import { MessageTimeline } from './components/MessageTimeline';
-import { OrbitTimeline } from './components/OrbitTimeline';
+import { MessageTimeline, TypingMessage, ThinkingAnimation } from './components/chat';
+import { OrbitTimeline } from './components/ui/OrbitTimeline';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/ui/tabs';
 import { ScrollArea } from '@/app/ui/scroll-area';
 import { Badge } from '@/app/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/app/ui/tooltip';
 import { Progress } from '@/app/ui/progress';
-import { TypingMessage } from './components/TypingMessage';
-import { StarryBackground } from './components/StarryBackground';
+import { StarryBackground } from './components/ui/StarryBackground';
 import { systemPrompts } from './prompts';
-import { ThinkingAnimation } from './components/ThinkingAnimation';
-import OpenAI from 'openai';
-import { Sidebar } from './components/Sidebar';
-import { RightSidebar } from './components/RightSidebar';
+import { Sidebar } from './components/session';
+import { RightSidebar } from './components/chat';
 import supabase from '@/lib/supabase';
+import { Session } from '@/types/models/session';
+import { Message, ChatCompletionMessageParam, ChatResponse, ArchetypeCounts } from '@/types/models/message';
+import { PromptMode, RoleType, PersonaType } from '@/types/models/session';
 import { SessionAccordion } from '@/components/SessionAccordion';
 import { createClient } from '@supabase/supabase-js';
 
-type Message = {
-  id: string;
-  role: 'Client' | 'Helio' | 'Therapist';
-  content: string;
-  created_at: string;
-  archetype?: 'Self' | 'protector' | 'exile' | 'firefighter';
-  session_id: string;
-};
-
-type Session = {
-  id: string;
-  title: string;
-  mode: string;
-  created_at: string;
-};
-
-type PromptMode = 'heliosynthesis' | 'plain' | 'mythic' | 'clinical' | 'cbt' | 'spiritual' | 'gurdjieff' | 'personCentred' | 'transactionalAnalysis';
-type RoleType = 'client' | 'therapist' | 'clinician';
-type PersonaType = 'Gurdjieff' | 'Osho' | 'Rogers' | 'Clinical' | 'Default' | 'analyst' | 'therapist' | 'mythologist';
 type Archetype = 'Self' | 'protector' | 'exile' | 'firefighter';
-
-type ChatCompletionMessageParam = {
-  role: 'system' | 'user' | 'assistant';
-  content: string;
-  name: string;
-};
-
-type ChatCompletionRequest = {
-  model: string;
-  messages: ChatCompletionMessageParam[];
-  temperature: number;
-  max_tokens: number;
-  top_p: number;
-  frequency_penalty: number;
-  presence_penalty: number;
-};
-
-type ChatResponse = {
-  content: string;
-  archetype?: Archetype;
-};
-
-type ArchetypeCounts = {
-  Self: number;
-  protector: number;
-  exile: number;
-  firefighter: number;
-};
 
 const roleTones = {
   client: {
@@ -221,7 +174,6 @@ export default function ChatPage() {
   const [selectedMode, setSelectedMode] = useState<PromptMode>('heliosynthesis');
   const [selectedRole, setSelectedRole] = useState<RoleType>('client');
   const [isBotTyping, setIsBotTyping] = useState(false);
-  const [selectedSession, setSelectedSession] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
@@ -272,19 +224,19 @@ export default function ChatPage() {
   };
 
   const handleNewSession = async () => {
-    const { data: session } = await supabase.from("sessions").insert({
-      title: "New Session",
-      mode: "chat",
-    }).select().single();
+    const { data: session } = await supabase
+      .from("sessions")
+      .insert([{ title: "New Session", mode: "chat" }])
+      .select()
+      .single();
 
     if (session) {
-      await fetchSessions();
       setCurrentSessionId(session.id);
+      await fetchSessions();
     }
   };
 
   const handleSelectSession = async (sessionId: string) => {
-    setSelectedSession(sessionId);
     setCurrentSessionId(sessionId);
     await fetchMessages(sessionId);
   };

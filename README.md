@@ -49,3 +49,60 @@ A modern chat interface with multiple prompt modes powered by OpenAI.
 - TypeScript
 - Tailwind CSS
 - OpenAI API
+
+export function reportWebVitals(metric: NextWebVitalsMetric) {
+  if (process.env.NODE_ENV === 'production') {
+    // Send to analytics service
+    console.log(metric);
+  }
+}
+
+const accessibilityConfig = {
+  colorContrast: {
+    primary: '#4F46E5',
+    secondary: '#818CF8',
+    text: '#1F2937'
+  },
+  keyboardNavigation: true,
+  screenReaderSupport: true
+};
+
+export const metadata = {
+  title: 'Helio Chat',
+  description: 'A poetic chat interface for inner exploration',
+  openGraph: {
+    title: 'Helio Chat',
+    description: 'A poetic chat interface for inner exploration',
+    type: 'website',
+    locale: 'en_US',
+    site_name: 'Helio Chat',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Helio Chat',
+    description: 'A poetic chat interface for inner exploration',
+  },
+};
+
+// Add error boundary component
+class ErrorBoundary extends React.Component {
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    // Log to error tracking service
+    console.error('Error:', error, errorInfo);
+  }
+  // ... rest of implementation
+}
+
+// Add test setup
+const testConfig = {
+  jest: {
+    setupFiles: ['<rootDir>/jest.setup.ts'],
+    testEnvironment: 'jsdom',
+    collectCoverage: true
+  },
+  cypress: {
+    baseUrl: 'http://localhost:3000',
+    viewportWidth: 1280,
+    viewportHeight: 720
+  }
+};
