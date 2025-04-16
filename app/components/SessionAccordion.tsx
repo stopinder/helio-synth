@@ -15,14 +15,14 @@ interface Session {
 interface SessionAccordionProps {
   sessions: Session[];
   onSelectSession: (sessionId: string) => void;
-  activeSessionId?: string;
+  currentSessionId?: string;
   onRenameSession: (sessionId: string, newTitle: string) => void;
 }
 
 export function SessionAccordion({ 
   sessions, 
   onSelectSession, 
-  activeSessionId,
+  currentSessionId,
   onRenameSession 
 }: SessionAccordionProps) {
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
@@ -138,7 +138,7 @@ export function SessionAccordion({
                             "flex items-center gap-2 p-3 rounded-md cursor-pointer transition-all duration-200 group",
                             "hover:bg-white hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2",
                             "ml-2 border-l-2 border-transparent",
-                            activeSessionId === session.id && "bg-white shadow-sm border-l-indigo-500"
+                            currentSessionId === session.id && "bg-white shadow-sm border-l-indigo-500"
                           )}
                         >
                           {getModeIcon(session.mode)}

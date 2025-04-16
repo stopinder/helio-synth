@@ -18,10 +18,10 @@ type Session = {
 type SidebarProps = {
   onNewSession: () => void;
   onSelectSession: (sessionId: string) => void;
-  activeSessionId?: string;
+  currentSessionId?: string;
 };
 
-export function Sidebar({ onNewSession, onSelectSession, activeSessionId }: SidebarProps) {
+export function Sidebar({ onNewSession, onSelectSession, currentSessionId }: SidebarProps) {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMode, setFilterMode] = useState<string | null>(null);
@@ -147,7 +147,7 @@ export function Sidebar({ onNewSession, onSelectSession, activeSessionId }: Side
             <SessionAccordion
               sessions={filteredSessions}
               onSelectSession={onSelectSession}
-              activeSessionId={activeSessionId}
+              activeSessionId={currentSessionId}
               onRenameSession={handleRenameSession}
             />
           </div>

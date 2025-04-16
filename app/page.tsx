@@ -580,7 +580,7 @@ export default function ChatPage() {
       <Sidebar
         onNewSession={handleNewSession}
         onSelectSession={handleSelectSession}
-        activeSessionId={currentSessionId}
+        currentSessionId={currentSessionId}
       />
       <div className="flex-1 ml-[280px]">
         <div className="h-full flex flex-col">
