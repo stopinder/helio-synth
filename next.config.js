@@ -1,4 +1,6 @@
-import withBundleAnalyzer from '@next/bundle-analyzer'({
+import createNextBundleAnalyzer from '@next/bundle-analyzer';
+
+const withBundleAnalyzer = createNextBundleAnalyzer({
   enabled: process.env.ANALYZE === 'true',
 });
 
