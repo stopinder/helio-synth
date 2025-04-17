@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "chmod +x build.sh && ./build.sh",
+  "buildCommand": "bash build.sh",
   "installCommand": "echo 'Skipping install, handled in build.sh'",
   "framework": "nextjs",
   "regions": ["iad1"],
