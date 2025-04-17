@@ -27,4 +27,13 @@ yarn-error.log*
 
 # Build cache
 .next/cache/
-tsconfig.tsbuildinfo 
+tsconfig.tsbuildinfo
+
+# Next.js files
+.next
+node_modules
+package-lock.json
+next.config.js
+next.config.mjs
+build.sh
+vercel.json 
