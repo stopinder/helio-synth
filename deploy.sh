@@ -1,20 +1,23 @@
 #!/bin/bash
 
+# Exit on error
+set -e
+
 echo "🔍 Running type checks..."
-npm run type-check || { echo "❌ Type check failed"; exit 1; }
+npm run type-check
 
 echo "🧪 Running tests..."
-npm run test || { echo "❌ Tests failed"; exit 1; }
+npm run test
 
 echo "🧹 Cleaning up build artifacts..."
 rm -rf .next
-rm -rf tsconfig.tsbuildinfo
+rm -f tsconfig.tsbuildinfo
 
 echo "📦 Installing dependencies..."
-npm install || { echo "❌ Dependencies installation failed"; exit 1; }
+npm ci
 
 echo "🏗️ Building project..."
-npm run build || { echo "❌ Build failed"; exit 1; }
+npm run build
 
 echo "🚀 Deploying to Vercel..."
 git add .
