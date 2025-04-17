@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
-  "installCommand": "npm install",
+  "buildCommand": "chmod +x build.sh && ./build.sh",
+  "installCommand": "echo 'Skipping install, handled in build.sh'",
   "framework": "nextjs",
   "regions": ["iad1"],
   "cleanUrls": true,
