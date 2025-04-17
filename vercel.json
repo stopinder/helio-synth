@@ -7,11 +7,19 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "env": {
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "NODE_VERSION": "18.17.0"
   },
   "build": {
     "env": {
-      "NODE_VERSION": "18.17.0"
+      "NODE_VERSION": "18.17.0",
+      "NODE_ENV": "production"
+    }
+  },
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "fix-build": true
     }
   }
 } 
