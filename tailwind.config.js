@@ -5,19 +5,19 @@ export default {
         "./src/**/*.{vue,js,ts,jsx,tsx}"
     ],
     safelist: [
+        // Handle left and right sidebar transforms
         {
-            pattern: /translate-x-(0|full)/,
+            pattern: /^-?translate-x-(0|full)$/,
         },
-        {
-            pattern: /-translate-x-full/,
-        },
-        {
-            pattern: /overflow-x-(auto|hidden|scroll)/,
-        }
+        // Just in case it's applied as raw string in HTML
+        'translate-x-0',
+        'translate-x-full',
+        '-translate-x-full',
+        'transform',
+        'overflow-x-hidden'
     ],
     theme: {
         extend: {},
     },
     plugins: [],
 }
-
