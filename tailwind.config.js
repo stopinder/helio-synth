@@ -5,10 +5,15 @@ export default {
         "./src/**/*.{vue,js,ts,jsx,tsx}"
     ],
     safelist: [
-        'translate-x-0',
-        'translate-x-full',
-        '-translate-x-full',
-        'overflow-x-hidden'
+        {
+            pattern: /translate-x-(0|full)/,
+        },
+        {
+            pattern: /-translate-x-full/,
+        },
+        {
+            pattern: /overflow-x-(auto|hidden|scroll)/,
+        }
     ],
     theme: {
         extend: {},
