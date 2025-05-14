@@ -38,6 +38,11 @@
         </div>
       </aside>
 
+      <!-- ✅ Tailwind Transform Test Block -->
+      <div class="translate-x-0 transform text-green-500 bg-black/30 p-3 text-sm absolute left-1/2 top-4 -translate-x-1/2 z-50 rounded shadow">
+        ✅ Tailwind transform classes are working
+      </div>
+
       <!-- Center View -->
       <main class="flex-1 overflow-y-auto px-4 py-6 md:px-10 md:py-10 z-10">
         <slot />
