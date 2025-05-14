@@ -52,6 +52,7 @@ import { fetchAIResponseStream } from '../lib/openai.js'
 import VOICES from '../voices.js'
 
 
+
 const voices = VOICES
 const currentVoice = ref('reflective')
 const messages = ref([])
