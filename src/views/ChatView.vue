@@ -49,7 +49,8 @@ import { ref, reactive, nextTick } from 'vue'
 import MessageThread from '../components/MessageThread.vue'
 import MessageInput from '../components/MessageInput.vue'
 import { fetchAIResponseStream } from '../lib/openai.js'
-import VOICES from '../voices.js' // ✅ Correct default import
+import VOICES from '../voices.js' // ✅ correct
+
 
 const voices = VOICES
 const currentVoice = ref('reflective')
