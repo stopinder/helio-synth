@@ -1,11 +1,11 @@
 <template>
   <div class="flex flex-col h-screen overflow-hidden bg-black text-white">
-    <!-- Scrollable message area -->
-    <div class="flex-1 overflow-y-auto overflow-x-hidden px-4 py-6">
+    <!-- Chat thread -->
+    <div ref="scrollArea" class="flex-1 overflow-y-auto overflow-x-hidden px-4 py-6">
       <MessageThread :messages="messages" />
     </div>
 
-    <!-- Fixed input bar -->
+    <!-- Input bar -->
     <div class="shrink-0 border-t border-purple-800 bg-black/30 backdrop-blur-md">
       <MessageInput @send="handleSend" />
     </div>
@@ -13,21 +13,41 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, nextTick } from 'vue'
 import MessageThread from '../components/MessageThread.vue'
 import MessageInput from '../components/MessageInput.vue'
+import { fetchAIResponse } from '../lib/openai.js'
 
 const messages = ref([
   { role: 'assistant', content: 'Welcome to HelioSynth. Speak your inner world…' }
 ])
 
-const handleSend = (userMessage) => {
-  messages.value.push({ role: 'user', content: userMessage })
+const scrollArea = ref(null)
 
-  // Optional: auto-reply for test
-  setTimeout(() => {
-    messages.value.push({ role: 'assistant', content: `You said: "${userMessage}"` })
-  }, 500)
+const scrollToBottom = () => {
+  nextTick(() => {
+    scrollArea.value?.scrollTo({
+      top: scrollArea.value.scrollHeight,
+      behavior: 'smooth'
+    })
+  })
+}
+
+const handleSend = async (userMessage) => {
+  messages.value.push({ role: 'user', content: userMessage })
+  scrollToBottom()
+
+  const placeholder = { role: 'assistant', content: '' }
+  messages.value.push(placeholder)
+  scrollToBottom()
+
+  const fullReply = await fetchAIResponse([...messages.value.slice(0, -1)])
+
+  for (let i = 0; i < fullReply.length; i++) {
+    placeholder.content = fullReply.slice(0, i + 1)
+    await new Promise(resolve => setTimeout(resolve, 15))
+    scrollToBottom()
+  }
 }
 </script>
 
