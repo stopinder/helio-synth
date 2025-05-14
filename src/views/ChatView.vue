@@ -13,10 +13,10 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue'
+import { ref, reactive, nextTick } from 'vue'
 import MessageThread from '../components/MessageThread.vue'
 import MessageInput from '../components/MessageInput.vue'
-import { fetchAIResponse } from '../lib/openai.js'
+import { fetchAIResponseStream } from '../lib/openai.js'
 
 const messages = ref([
   { role: 'assistant', content: 'Welcome to HelioSynth. Speak your inner world…' }
@@ -37,17 +37,13 @@ const handleSend = async (userMessage) => {
   messages.value.push({ role: 'user', content: userMessage })
   scrollToBottom()
 
-  const placeholder = { role: 'assistant', content: '' }
+  const placeholder = reactive({ role: 'assistant', content: '...' })
   messages.value.push(placeholder)
   scrollToBottom()
 
-  const fullReply = await fetchAIResponse([...messages.value.slice(0, -1)])
-
-  for (let i = 0; i < fullReply.length; i++) {
-    placeholder.content = fullReply.slice(0, i + 1)
-    await new Promise(resolve => setTimeout(resolve, 15))
+  await fetchAIResponseStream([...messages.value], (updatedContent) => {
+    placeholder.content = updatedContent
     scrollToBottom()
-  }
+  })
 }
 </script>
-
