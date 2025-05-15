@@ -1,6 +1,9 @@
-export default {
-    reflective: {
-        name: "Reflective",
+export const VOICES = {
+    reflective: { ... },
+    ...
+}
+
+name: "Reflective",
         description: "Poetic, symbolic, soft-spoken — like speaking with water.",
         whisper: "Speak like water. Ask more than you answer.",
         prompt: `
